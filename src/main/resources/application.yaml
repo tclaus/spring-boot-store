@@ -2,14 +2,14 @@ spring:
   application:
     name: store
   datasource:
-    url: jdbc:mysql://localhost:3306/store_api?createDatabaseIfNotExist=true
-    username: root
-    password: MyPassword!
+    url: jdbc:postgresql://localhost:5433/springApi?createDatabaseIfNotExist=true
+    username: demouser
+    password: demouser
   jpa:
     show-sql: true
   jwt:
     secret: ${JWT_SECRET}
-    accessTokenExpiration: 900 # 15m
+    accessTokenExpiration: 7200 # 2hours / 5 minutes 900
     refreshTokenExpiration: 604800 # 7d
 stripe:
   secretKey: ${STRIPE_SECRET_KEY}
