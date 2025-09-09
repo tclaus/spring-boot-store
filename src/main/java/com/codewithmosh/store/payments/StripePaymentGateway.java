@@ -31,7 +31,7 @@ public class StripePaymentGateway implements PaymentGateway {
                     .setMode(SessionCreateParams.Mode.PAYMENT)
                     .setSuccessUrl(websiteUrl + "/checkout-success?orderId=" + order.getId())
                     .setCancelUrl(websiteUrl + "/checkout-cancel")
-                    .putMetadata("order_id", order.getId().toString());
+                    .setPaymentIntentData(createPaymentIntentData(order));
 
             order.getItems().forEach(item -> {
                 var lineItem = createLineItem(item);
@@ -40,11 +40,16 @@ public class StripePaymentGateway implements PaymentGateway {
 
             var session = Session.create(builder.build());
             return new CheckoutSession(session.getUrl());
-        }
-        catch (StripeException ex) {
+        } catch (StripeException ex) {
             System.out.println(ex.getMessage());
             throw new PaymentException();
         }
+    }
+
+    private static SessionCreateParams.PaymentIntentData createPaymentIntentData(Order order) {
+        return SessionCreateParams.PaymentIntentData.builder()
+                .putMetadata("order_id", order.getId().toString())
+                .build();
     }
 
     @Override
@@ -56,10 +61,10 @@ public class StripePaymentGateway implements PaymentGateway {
 
             return switch (event.getType()) {
                 case "payment_intent.succeeded" ->
-                    Optional.of(new PaymentResult(extractOrderId(event), PaymentStatus.PAID));
+                        Optional.of(new PaymentResult(extractOrderId(event), PaymentStatus.PAID));
 
                 case "payment_intent.payment_failed" ->
-                    Optional.of(new PaymentResult(extractOrderId(event), PaymentStatus.FAILED));
+                        Optional.of(new PaymentResult(extractOrderId(event), PaymentStatus.FAILED));
 
                 default -> Optional.empty();
             };
@@ -70,7 +75,7 @@ public class StripePaymentGateway implements PaymentGateway {
 
     private Long extractOrderId(Event event) {
         var stripeObject = event.getDataObjectDeserializer().getObject().orElseThrow(
-            () -> new PaymentException("Could not deserialize Stripe event. Check the SDK and API version.")
+                () -> new PaymentException("Could not deserialize Stripe event. Check the SDK and API version.")
         );
         var paymentIntent = (PaymentIntent) stripeObject;
         return Long.valueOf(paymentIntent.getMetadata().get("order_id"));
@@ -87,7 +92,7 @@ public class StripePaymentGateway implements PaymentGateway {
         return SessionCreateParams.LineItem.PriceData.builder()
                 .setCurrency("usd")
                 .setUnitAmountDecimal(
-                    item.getUnitPrice().multiply(BigDecimal.valueOf(100)))
+                        item.getUnitPrice().multiply(BigDecimal.valueOf(100)))
                 .setProductData(createProductData(item))
                 .build();
     }
